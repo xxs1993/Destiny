@@ -4,6 +4,7 @@ import akka.actor.Actor
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 case class MatchActor() extends Actor{
 

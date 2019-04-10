@@ -1,13 +1,18 @@
 
 import java.net.URL
 
+import org.apache.spark.rdd.RDD
+import org.slf4j.LoggerFactory
+
+import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration.Duration
 import scala.io.Source
 import scala.language.postfixOps
 import scala.util._
-import scala.xml.Node
+import scala.util.control.Exception
+import scala.xml.{Elem, Node, NodeSeq, XML}
 
 /**
   * crawl user data
@@ -15,21 +20,27 @@ import scala.xml.Node
 object Crawler extends App {
   val opgg = """https://na.op.gg/summoner/userName="""
   val path = "/summoner/userName="
+  val log = LoggerFactory.getLogger("Crawler")
+
   /*
   get html content by url
    */
-  def getURLContent(u:URL): Future[String] = {
+  def getURLContent(u:String): Future[String] = {
     for {
       source <- Future(Source.fromURL(u))
     } yield cleanseHtml(source.mkString)
   }
 
   /*
-  get the needed block of html
+  get the needed block of html, eliminate the disturb of javascript
    */
   def cleanseHtml(s:String):String= {
-    val start = s.indexOf("""<div class="GameItemList"""")
-    val end = s.indexOf("""<div class="GameMoreButton Box"""")
+    val start = s.lastIndexOf("""<div class="FollowPlayers Names""")
+    val end = s.lastIndexOf("""<div class="StatsButton">""")
+    if(start<0 || end<0) {
+//      log.warn(s)
+      return null
+    }
     s.substring(start,end).replace("javascript:","")
   }
 
@@ -38,39 +49,42 @@ object Crawler extends App {
     * @param u
     * @return
     */
-  def wget(u: URL): Future[Seq[URL]] = {
-    def getURLs(ns: Node): Seq[URL] = for (x <- ns \\ "a" map (_ \@ "href") if x.contains(path)&&(!x.contains(u.getPath)) ) yield new URL(u, x)
-    def getLinks(g: String): Try[Seq[URL]] =
-      for (n <- HTMLParser.parse(g) recoverWith { case f => Failure(new RuntimeException(s"parse problem with URL $u: $f")) })
-        yield getURLs(n)
-    for (x <- getURLContent(u); s <- MonadHelper.asFuture(getLinks(x))) yield s
+  def wget(u: String): Future[Seq[String]] = {
+    def getURLs(ns: Elem): Seq[String] = for (x <- ns \\ "a" map (_ \@ "href") if x.contains(path)&&(!x.contains(u)) ) yield "https:"+x
+    def getLinks(g: String): Try[Seq[String]] ={
+       g match {
+         case null =>Failure(new RuntimeException("Null content "+u))
+         case _ => Try{
+              val elem = XML.loadString(g)
+              getURLs(elem)
+          }
+         }
+       }
+      for (x <- getURLContent(u); s <- MonadHelper.asFuture(getLinks(x)) if(x!=null)) yield s
   }
 
-  def wget(us: Seq[URL]): Future[Seq[Either[Throwable, Seq[URL]]]] = {
-    val us2 = us.distinct
-    Future.sequence(for(u<- us2)yield MonadHelper.sequence(wget(u)))
+
+  /**
+    * keep crawling the link
+    * @param depth
+    * @param url
+    * @return
+    */
+  def crawler(depth:Int, url:String): Future[RDD[String]] = {
+      def inner(depth:Int,start:RDD[String],rt:RDD[String]):Future[RDD[String]]={
+        Thread.sleep(1000)
+          if(depth > 0){
+            val newRu = Future.sequence(for( u<-start.collect().toSeq) yield wget(u))
+            val newRru:Future[Seq[String]] = for(x<-newRu)yield x.flatten
+            for(ru<-RDDHelper.transfer(newRru); i<-inner(depth-1,ru,rt ++ ru) if(ru !=null && rt!=null))yield i
+        }else{
+          return Future.successful(rt)
+        }
+      }
+      val init = Await.result(RDDHelper.transfer(for(x<-wget(url))yield x),Duration("10 second"))
+      inner(depth,init,init )
   }
-//
-  var se = Seq[URL](new URL(""))
+  val a = Await.result(crawler(3,opgg+"CastroDistrict"),Duration("300 second"))
+  FileHelper.writeToFile(RDDHelper.toDataFrame(a),"123.csv")
 
-//  def crawler(depth: Int, args: Seq[URL]): Future[Stream[URL]] = {
-//    def inner(urls: Seq[URL], depth: Int, accum: Seq[URL]): Future[Stream[URL]] =
-//      if (depth > 0)
-//        for (us <- MonadOps.flattenRecover(wget(urls), { x => System.err.println(x) }); r <- inner(us, depth - 1, accum ++: urls)) yield r
-//      else
-//        Future.successful(accum)
-//    inner(args, depth, Nil)
-//  }
-
-//  println(s"web reader: ${args.toList}")
-//  val urls = for (arg <- args toList) yield Try(new URL(arg))
-//  val s = MonadOps.sequence(urls)
-//  s match {
-//    case Success(z) =>
-//      println(s"invoking crawler on $z")
-//      val f = crawler(2, z)
-//      Await.ready(f, Duration("60 second"))
-//      for (x <- f) println(s"Links: $x")
-//    case Failure(z) => println(s"failure: $z")
-//  }
 }
