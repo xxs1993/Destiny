@@ -53,14 +53,11 @@ object Crawler extends App {
   def wget(u: String): Future[Seq[String]] = {
     def getURLs(ns: Elem): Seq[String] = {
       val list = ns \\ "a" map (_ \@ "href")
-      list match {
-        case l if l!=null => for (x <- l if x.contains(path)&&(!x.contains(u)) ) yield "https:"+x
-        case _ => Seq()
-      }
+      for (x <- list if x!=null && x.contains(path)&&(!x.contains(u)) ) yield "https:"+x
     }
     def getLinks(g: String): Try[Seq[String]] ={
        g match {
-         case null =>Failure(new RuntimeException("Null content "+u))
+         case x if x==null || x.isEmpty =>Failure(new RuntimeException("Null content "+u))
          case _ => Try{
               val elem = XML.loadString(g)
               getURLs(elem)
@@ -79,7 +76,7 @@ object Crawler extends App {
     */
   def crawler(depth:Int, url:String): Future[RDD[String]] = {
       def inner(depth:Int,start:RDD[String],rt:RDD[String]):Future[RDD[String]]={
-        Thread.sleep(1000)
+//        Thread.sleep(1000)
           if(depth > 0){
             val newRu = Future.sequence(for( u<-start.collect().toSeq) yield wget(u))
             val newRru:Future[Seq[String]] = for(x<-newRu)yield x.flatten
@@ -93,10 +90,9 @@ object Crawler extends App {
   }
 
   val a = Await.result(crawler(1,opgg+"CastroDistrict"),Duration("300 second"))
-  val b = Await.result(RiotRequest(a.collect().toList).requestForAccount(),Duration("200 second"))
+  val b = Await.result(RiotAccountRequest(a.collect().toList).requestForAccount(),Duration("200 second"))
 
   implicit val encoder = Encoders.javaSerialization[Row]
-
   FileHelper.writeToFile(b,"csv")
   RDDHelper.spark.stop()
 }
