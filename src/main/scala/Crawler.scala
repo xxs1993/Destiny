@@ -1,21 +1,22 @@
 
-import java.net.URL
 
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{Encoders, Row}
 import org.slf4j.LoggerFactory
 
-import scala.annotation.tailrec
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 import scala.concurrent.duration.Duration
 import scala.io.Source
 import scala.language.postfixOps
 import scala.util._
-import scala.util.control.Exception
-import scala.xml.{Elem, Node, NodeSeq, XML}
+import scala.xml.{Elem, XML}
+
+
+
 
 /**
-  * crawl user data
+  * crawl user data from opgg
   */
 object Crawler extends App {
   val opgg = """https://na.op.gg/summoner/userName="""
@@ -35,11 +36,11 @@ object Crawler extends App {
   get the needed block of html, eliminate the disturb of javascript
    */
   def cleanseHtml(s:String):String= {
+    if(s == null) return ""
     val start = s.lastIndexOf("""<div class="FollowPlayers Names""")
     val end = s.lastIndexOf("""<div class="StatsButton">""")
     if(start<0 || end<0) {
-//      log.warn(s)
-      return null
+      return ""
     }
     s.substring(start,end).replace("javascript:","")
   }
@@ -50,7 +51,13 @@ object Crawler extends App {
     * @return
     */
   def wget(u: String): Future[Seq[String]] = {
-    def getURLs(ns: Elem): Seq[String] = for (x <- ns \\ "a" map (_ \@ "href") if x.contains(path)&&(!x.contains(u)) ) yield "https:"+x
+    def getURLs(ns: Elem): Seq[String] = {
+      val list = ns \\ "a" map (_ \@ "href")
+      list match {
+        case l if l!=null => for (x <- l if x.contains(path)&&(!x.contains(u)) ) yield "https:"+x
+        case _ => Seq()
+      }
+    }
     def getLinks(g: String): Try[Seq[String]] ={
        g match {
          case null =>Failure(new RuntimeException("Null content "+u))
@@ -60,7 +67,7 @@ object Crawler extends App {
           }
          }
        }
-      for (x <- getURLContent(u); s <- MonadHelper.asFuture(getLinks(x)) if(x!=null)) yield s
+      for (x <- getURLContent(u); s <- MonadHelper.asFuture(getLinks(x)) if(x!=null && x!="")) yield s
   }
 
 
@@ -84,7 +91,12 @@ object Crawler extends App {
       val init = Await.result(RDDHelper.transfer(for(x<-wget(url))yield x),Duration("10 second"))
       inner(depth,init,init )
   }
-  val a = Await.result(crawler(3,opgg+"CastroDistrict"),Duration("300 second"))
-  FileHelper.writeToFile(RDDHelper.toDataFrame(a),"123.csv")
 
+  val a = Await.result(crawler(1,opgg+"CastroDistrict"),Duration("300 second"))
+  val b = Await.result(RiotRequest(a.collect().toList).requestForAccount(),Duration("200 second"))
+
+  implicit val encoder = Encoders.javaSerialization[Row]
+
+  FileHelper.writeToFile(b,"csv")
+  RDDHelper.spark.stop()
 }

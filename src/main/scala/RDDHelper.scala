@@ -24,8 +24,10 @@ object RDDHelper {
 
 
  def toDataFrame[X:ClassTag](rdd:RDD[String]):DataFrame={
-   rdd.collect().toList.toDF("name")
+   rdd.collect().toList.toDF()
  }
+
+
 
 
 }
