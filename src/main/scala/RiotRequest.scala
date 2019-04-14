@@ -124,7 +124,7 @@ case class RiotMatchIdRequest(df:DataFrame) {
   private val log = LoggerFactory.getLogger(this.getClass.getName)
   val config= ConfigFactory.load()
   val apikey = config.getString("riot.apikey ")
-  val timestamp = Timestamp.valueOf(LocalDateTime.now().plusWeeks(-2)).getTime
+  val timestamp = Timestamp.valueOf(LocalDateTime.now().plusDays(-1)).getTime
 
   val url = s"""https://na1.api.riotgames.com/lol/match/v4/matchlists/by-account/accountId?queue=420&seanson=13&beginTime=$timestamp&api_key=$apikey"""
   val rankQueueId = 420
