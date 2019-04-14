@@ -35,7 +35,7 @@ class CrawlerTest  extends FlatSpec with Matchers with Futures with ScalaFutures
   "test wget" should "succeed" taggedAs Slow in {
     val goodUrl = Crawler.wget(good)
 
-    whenReady(goodUrl,timeout(Span(120,Seconds))){w=>w.length>0 shouldBe true}
+    whenReady(goodUrl,timeout(Span(12,Seconds))){w=>w.length>0 shouldBe true}
   }
 
   "test Crawler" should " succeed" taggedAs Slow in{
@@ -48,16 +48,6 @@ class CrawlerTest  extends FlatSpec with Matchers with Futures with ScalaFutures
     val re = Try{Crawler.crawler(1,bad)}
     re.failure.exception shouldBe a[Exception]
   }
-//  test("testWget") {
-//
-//  }
-//
-//  test("testCrawler") {
-//
-//  }
-//
-//  test("testCleanseHtml") {
-//
-//  }
+
 
 }
