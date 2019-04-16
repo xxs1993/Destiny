@@ -110,7 +110,7 @@ object Crawler  {
   }
 
   def crawl(depth:Int)={
-    val a = Await.result(crawler(depth,opgg+"XXSSXX2020"),Duration("300 second"))
+    val a = Await.result(crawler(depth,opgg+"XXSSXX2020"),20 minute)
     log.info("Finished crawling the summoners names")
     //  val b = Await.result(RiotAccountRequest(a.collect().toList).requestForAccount(),Duration("200 second"))
     implicit val timeout: Timeout = 10 second
