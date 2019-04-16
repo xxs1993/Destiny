@@ -15,14 +15,14 @@ object FileHelper {
     spark.stop()
   }
 
-  def writeToFile(seq:Seq[Row],filepath:String)(implicit encoders: Encoder[Row])={
-    val spark:SparkSession = SparkSession
-      .builder()
-      .appName("Destiny")
-      .master("local[*]")
-      .getOrCreate()
-    spark.createDataset(seq).repartition(1).write.option("header","true").option("quote","").option("escape","").csv(filepath)
-  }
+//  def writeToFile(seq:Seq[Row],filepath:String)(implicit encoders: Encoder[Row])={
+//    val spark:SparkSession = SparkSession
+//      .builder()
+//      .appName("Destiny")
+//      .master("local[*]")
+//      .getOrCreate()
+//    spark.createDataset(seq).repartition(1).write.option("header","true").option("quote","").option("escape","").csv(filepath)
+//  }
 
   def readCSVFile(filePath:String):Try[DataFrame]={
     val spark:SparkSession = SparkSession

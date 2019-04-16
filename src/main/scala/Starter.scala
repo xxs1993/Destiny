@@ -3,7 +3,7 @@ import akka.util.Timeout
 
 object Starter extends App{
   override def main(args:Array[String])={
-    Crawler.crawl(1)
+    Crawler.crawl(12)
 ////implicit val timeout: Timeout = 10 second
 //    implicit val system = ActorSystem("MatchActor")
 //    val actor = system.actorOf(Props.create(classOf[MatchActor]), "account")

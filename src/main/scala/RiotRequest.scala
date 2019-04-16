@@ -20,6 +20,7 @@ trait RiotRequest{
   val apikey = config.getString("riot.apikey ")
   val parser = new JsonParser()
   protected val log = LoggerFactory.getLogger(this.getClass.getName)
+
   def getURLContent(u:String): Future[Row] = {
     Thread.sleep(1201)
     for {
@@ -31,11 +32,11 @@ trait RiotRequest{
       }
     }
   }
-
   def transJsonToRow(str: String):Row
 
-
 }
+
+
 
 /**
   * request account
@@ -124,7 +125,7 @@ case class RiotMatchIdRequest(df:DataFrame) {
   private val log = LoggerFactory.getLogger(this.getClass.getName)
   val config= ConfigFactory.load()
   val apikey = config.getString("riot.apikey ")
-  val timestamp = Timestamp.valueOf(LocalDateTime.now().plusDays(-1)).getTime
+  val timestamp = Timestamp.valueOf(LocalDateTime.now().plusWeeks(-1)).getTime
 
   val url = s"""https://na1.api.riotgames.com/lol/match/v4/matchlists/by-account/accountId?queue=420&seanson=13&beginTime=$timestamp&api_key=$apikey"""
   val rankQueueId = 420
@@ -135,7 +136,7 @@ case class RiotMatchIdRequest(df:DataFrame) {
     } yield {
       source match {
         case Success(v) =>transJsonToRow(v.mkString)
-        case Failure(e) =>log.error(e.getMessage + s" -- $u");null
+        case Failure(e) =>log.error(e.getMessage + s" -- $u");Nil
       }
     }
   }
@@ -158,3 +159,27 @@ case class RiotMatchIdRequest(df:DataFrame) {
 
 
 }
+case class SummonerInfo(){
+
+}
+case class RiotChampionsRequest(name:String) extends RiotRequest {
+  val championsListURL = s"""https://na1.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-summoner/summonerId?api_key=$apikey"""
+
+  override def transJsonToRow(str: String): Row = {
+    val array = JSON.parseFull(str).asInstanceOf[List[Map[String,Any]]]
+    val arr = array.map(x => (x.get("championid").get.asInstanceOf[Double].intValue()->x.get("championPoints").get.asInstanceOf[Double]))
+    Row(arr)
+  }
+
+  def requestForChampionsBySummoners(): Future[List[(Int, Double)]] ={
+    for(x <- getURLContent(championsListURL.replace("summonerId",name))) yield x.get(0).asInstanceOf[List[(Int,Double)]]
+  }
+}
+
+//case class RiotChampionRequest(name:String) extends RiotRequest{
+//  val url = s"""https://na1.api.riotgames.com/lol/league/v4/positions/by-summoner/summonerId?api_key=$apikey"""
+//
+//  override def transJsonToRow(str: String): Row = {
+//    val arr =
+//  }
+//}
