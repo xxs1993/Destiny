@@ -1,79 +1,123 @@
 
-import java.net.URL
 
+import akka.actor.{ActorSystem, Props}
+import akka.util.Timeout
+import org.apache.spark.SparkContext
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.slf4j.LoggerFactory
+
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import scala.concurrent.duration._
+import scala.concurrent.duration.Duration
 import scala.io.Source
 import scala.language.postfixOps
+import scala.reflect.ClassTag
 import scala.util._
-import scala.xml.Node
-import org.htmlcleaner.{HtmlCleaner, TagNode}
-import scala.xml.parsing.XhtmlParser
+import scala.xml.{Elem, XML}
 
-object Crawler extends App {
+
+/**
+  * crawl user data from opgg
+  */
+object Crawler  {
   val opgg = """https://na.op.gg/summoner/userName="""
-  def getURLContent(u:URL): Future[String] = {
-//    var url = opgg + name
+  val path = "/summoner/userName="
+  val log = LoggerFactory.getLogger("Crawler")
+
+  val spark:SparkSession = SparkSession
+    .builder()
+    .appName("Destiny")
+    .master("local[*]")
+    .getOrCreate()
+  val sc = SparkContext.getOrCreate()
+  import spark.implicits._
+
+
+  def transfer[X:ClassTag](fs:Future[Seq[X]]):Future[RDD[X]]={
+    for(s <- fs) yield sc.parallelize(s.distinct)
+  }
+
+
+  def toDataFrame[X:ClassTag](rdd:RDD[String]):DataFrame={
+    rdd.collect().toList.toDF()
+  }
+  /*
+  get html content by url
+   */
+  def getURLContent(u:String): Future[String] = {
     for {
       source <- Future(Source.fromURL(u))
     } yield cleanseHtml(source.mkString)
   }
 
+  /*
+  get the needed block of html, eliminate the disturb of javascript
+   */
   def cleanseHtml(s:String):String= {
-    val h = new HtmlCleaner();
-    val html = h.getInnerHtml(h.clean(s))
-    var str = ""
-    str = html.replaceAll("<script>.*</script>","")
-    return str
+    if(s == null) return ""
+    val start = s.lastIndexOf("""<div class="FollowPlayers Names""")
+    val end = s.lastIndexOf("""<div class="StatsButton">""")
+    if(start<0 || end<0) {
+      return ""
+    }
+    s.substring(start,end).replace("javascript:","")
   }
 
-//  def parse(u:URL): Unit ={
-//       val parser = new XhtmlParser()
-//  }
-
-
-
-  def asFuture[X](xy: Try[X]): Future[X] = xy match {
-    case Success(s) => Future.successful(s)
-    case Failure(e) => Future.failed(e)
+  /**
+    * get related links
+    * @param u
+    * @return
+    */
+  def wget(u: String): Future[Seq[String]] = {
+    def getURLs(ns: Elem): Seq[String] = {
+      val list = ns \\ "a" map (_ \@ "href")
+      for (x <- list if x!=null && x.contains(path)&&(!x.contains(u)) ) yield "https:"+x
+    }
+    def getLinks(g: String): Try[Seq[String]] ={
+       g match {
+         case x if x==null || x.isEmpty =>log.warn("null content: "+u);Success(Seq())
+         case _ => Try{
+              val elem = XML.loadString(g)
+              getURLs(elem)
+          }
+         }
+       }
+      for (x <- getURLContent(u) ; s <- MonadHelper.asFuture(getLinks(x))) yield s
   }
 
-  def wget(u: URL): Future[Seq[URL]] = {
-    //    var url = new URL(u)
-    def getURLs(ns: Node): Seq[URL] = for (x <- ns \\ "a" map (_ \@ "href")) yield new URL(u, x)
 
-    def getLinks(g: String): Try[Seq[URL]] =
-      for (n <- HTMLParser.parse(g) recoverWith { case f => Failure(new RuntimeException(s"parse problem with URL $u: $f")) })
-        yield getURLs(n)
-
-    for (x <- getURLContent(u); s <- asFuture(getLinks(x))) yield s
+  /**
+    * keep crawling the link
+    * @param depth
+    * @param url
+    * @return
+    */
+  def crawler(depth:Int, url:String): Future[RDD[String]] = {
+      def inner(depth:Int,start:RDD[String],rt:RDD[String]):Future[RDD[String]]={
+//        Thread.sleep(1000)
+          if(depth > 0){
+            val newRu = Future.sequence(for( u<-start.collect().toSeq) yield wget(u))
+            val newRru:Future[Seq[String]] = for(x<-newRu)yield x.flatten
+            for(ru<-transfer(newRru); i<-inner(depth-1,ru,rt ++ ru) if(ru !=null && rt!=null))yield i
+        }else{
+          return Future.successful(rt)
+        }
+      }
+      val init = Await.result(transfer(for(x<-wget(url))yield x),Duration("10 second"))
+      inner(depth,init,init )
   }
-  val urls = Await.result(wget(new URL(opgg+"XXSSXX2020")),10 seconds)
-  print(urls.length)
 
-//  def wget(us: Seq[URL]): Future[Seq[Either[Throwable, Seq[URL]]]] = {
-//
-//  }
-//
-//  def crawler(depth: Int, args: Seq[URL]): Future[Seq[URL]] = {
-//    def inner(urls: Seq[URL], depth: Int, accum: Seq[URL]): Future[Seq[URL]] =
-//      if (depth > 0)
-//        for (us <- MonadOps.flattenRecover(wget(urls), { x => System.err.println(x) }); r <- inner(us, depth - 1, accum ++: urls)) yield r
-//      else
-//        Future.successful(accum)
-//    inner(args, depth, Nil)
-//  }
-//
-//  println(s"web reader: ${args.toList}")
-//  val urls = for (arg <- args toList) yield Try(new URL(arg))
-//  val s = MonadOps.sequence(urls)
-//  s match {
-//    case Success(z) =>
-//      println(s"invoking crawler on $z")
-//      val f = crawler(2, z)
-//      Await.ready(f, Duration("60 second"))
-//      for (x <- f) println(s"Links: $x")
-//    case Failure(z) => println(s"failure: $z")
-//  }
+  def crawl(depth:Int)={
+    val a = Await.result(crawler(depth,opgg+"XXSSXX2020"),20 minute)
+    log.info("Finished crawling the summoners names")
+    //  val b = Await.result(RiotAccountRequest(a.collect().toList).requestForAccount(),Duration("200 second"))
+    implicit val timeout: Timeout = 10 second
+    implicit val system = ActorSystem("MatchActor")
+    val actor = system.actorOf(Props.create(classOf[MatchActor]), "account")
+    actor ! a
+  }
+
+
 }
