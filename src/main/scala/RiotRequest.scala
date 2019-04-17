@@ -8,10 +8,11 @@ import org.slf4j.LoggerFactory
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 import scala.util.{Failure, Random, Success, Try}
 import com.google.gson.{JsonArray, JsonObject, JsonParser}
 
+import scala.annotation.tailrec
 import scala.util.parsing.json.JSON
 
 
@@ -23,14 +24,27 @@ trait RiotRequest{
   val parser = new JsonParser()
   protected val log = LoggerFactory.getLogger(this.getClass.getName)
 
+
+
   def getURLContent(u:String): Future[Row] = {
-    Thread.sleep(1201)
+//    Thread.sleep(100)
     for {
       source <- Future(Try{Source.fromURL(u)})
     } yield {
       source match {
         case Success(v) =>transJsonToRow(v.mkString)
-        case Failure(e) =>log.error(e.getMessage + s" -- $u");null
+        case Failure(e) =>println(e.getMessage +s"------$u" );returnSource(Try{Source.fromURL(u)},0)
+      }
+    }
+  }
+  @tailrec
+  final def returnSource(t:Try[BufferedSource],n:Int):Row={
+    if(n >=5 ) return null
+    t match {
+      case Success(v) => transJsonToRow(v.mkString)
+      case Failure(e) => e.getMessage match {
+        case s if s.contains("429 for URL") => Thread.sleep(5000);returnSource(t,n+1)
+        case _ => null
       }
     }
   }
