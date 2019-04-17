@@ -52,10 +52,11 @@ implicit val encoder = Encoders.javaSerialization(Row.getClass).asInstanceOf[Enc
         case Failure(e) => throw new RuntimeException("Cannot find the file : "+x,e)
       }
       val matchIds = Await.result(RiotMatchIdRequest(df).requestForMatchId(),40 minute)
+      val date = LocalDate.now()
+      FileHelper.writeToFile(matchIds.toDF("matchId"), "match/"+date.getYear+"_"+date.getMonthValue+"_"+date.getDayOfMonth+"_matchId")
       log.info("get all matchIds with length:  "+matchIds.length)
       val result = Await.result(RiotMatchInfoRequest(matchIds.distinct).requestForMatchInfo(),40 minute)
       log.info("get all match info with length : "+result.length)
-      val date = LocalDate.now()
       val fileName = "match/"+date.getYear+"_"+date.getMonthValue+"_"+date.getDayOfMonth+"_match"
       val championMas = result.map(x=>x.getList(11))
       self ! championMas
