@@ -1,13 +1,9 @@
-import java.sql.Timestamp
-import java.text.NumberFormat
-import java.time.{LocalDate, LocalDateTime}
 
 import com.typesafe.config.ConfigFactory
-import org.scalatest.concurrent.{Futures, ScalaFutures}
+import org.scalatest.concurrent.{ Futures, ScalaFutures}
 import org.scalatest._
 import org.scalatest.tagobjects.Slow
-
-import scala.util.parsing.json.JSON
+import org.scalatest.time.{Seconds, Span}
 
 class RiotMatchInfoRequestTest extends FlatSpec with Matchers with Futures with ScalaFutures with TryValues with Inside  {
   val config= ConfigFactory.load()
@@ -193,9 +189,8 @@ class RiotMatchInfoRequestTest extends FlatSpec with Matchers with Futures with 
     row should not be null
   }
 
-  "test nothing" should "" in{
-    val timestamp = Timestamp.valueOf(LocalDateTime.now().plusDays(-1)).getTime
-    print(timestamp)
+  "test requestForMatchInfo" should "success" taggedAs Slow in{
+    whenReady(riotMatch.requestForMatchInfo(),timeout(Span(10, Seconds))){w=>w.length should be >0 }
   }
 
 }
