@@ -7,8 +7,6 @@ object Starter extends App{
 //implicit val timeout: Timeout = 10 second
     implicit val system = ActorSystem("MatchActor")
     val actor = system.actorOf(Props.create(classOf[MatchActor]), "account")
-////    actor ! "account/2019_4_13_account"
-//    executeChampionMastery(actor)
     executeMatch(actor)
   }
   def executeMatch(actor: ActorRef): Unit ={

@@ -27,7 +27,7 @@ trait RiotRequest{
 
 
   def getURLContent(u:String): Future[Row] = {
-//    Thread.sleep(100)
+    Thread.sleep(1200)
     for {
       source <- Future(Try{Source.fromURL(u)})
     } yield {
