@@ -16,7 +16,7 @@ libraryDependencies ++= Seq(
   "net.sourceforge.htmlcleaner"%"htmlcleaner"%"2.6.1",
   akkaGroup %% "akka-actor" % akkaVersion,
   akkaGroup %% "akka-testkit" % akkaVersion % "test",
-  akkaGroup %% "akka-slf4j" % akkaVersion,
+//  akkaGroup %% "akka-slf4j" % akkaVersion,
   "com.typesafe" % "config" % "1.3.0",
   "ch.qos.logback" % "logback-classic" % "1.0.0" % "runtime"
 )
