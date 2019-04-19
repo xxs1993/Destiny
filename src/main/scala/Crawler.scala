@@ -47,16 +47,20 @@ object Crawler  {
   get html content by url
    */
   def getURLContent(u:String): Future[String] = {
+
     for {
-      source <- Future(Source.fromURL(u))
-    } yield cleanseHtml(source.mkString)
+      source <- Future(Try{Source.fromURL(u)})
+    } yield cleanseHtml(source match {
+      case Success(v) => v.mkString
+      case Failure(e) => log.error(e.getMessage);null
+    })
   }
 
   /*
   get the needed block of html, eliminate the disturb of javascript
    */
   def cleanseHtml(s:String):String= {
-    if(s == null) return ""
+    if(s == null || s.isEmpty) return ""
     val start = s.lastIndexOf("""<div class="FollowPlayers Names""")
     val end = s.lastIndexOf("""<div class="StatsButton">""")
     if(start<0 || end<0) {
@@ -113,7 +117,7 @@ object Crawler  {
     val a = Await.result(crawler(depth,opgg+"XXSSXX2020"),20 minute)
     log.info("Finished crawling the summoners names")
     //  val b = Await.result(RiotAccountRequest(a.collect().toList).requestForAccount(),Duration("200 second"))
-    implicit val timeout: Timeout = 10 second
+    implicit val timeout: Timeout = 10 minute
     implicit val system = ActorSystem("MatchActor")
     val actor = system.actorOf(Props.create(classOf[MatchActor]), "account")
     actor ! a

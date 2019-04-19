@@ -51,15 +51,48 @@ implicit val encoder = Encoders.javaSerialization(Row.getClass).asInstanceOf[Enc
         case Success(value) => value
         case Failure(e) => throw new RuntimeException("Cannot find the file : "+x,e)
       }
-      val matchIds = Await.result(RiotMatchIdRequest(df).requestForMatchId(),10 minute)
-      log.info("get all matchIds with length:  "+matchIds.length)
-      val result = Await.result(RiotMatchInfoRequest(matchIds).requestForMatchInfo(),40 minute)
-      log.info("get all match info with length : "+result.length)
+      val matchIds = Await.result(RiotMatchIdRequest(df).requestForMatchId(),40 minute)
+      self ! matchIds
       val date = LocalDate.now()
-      val fileName = "match/"+date.getYear+"_"+date.getMonthValue+"_"+date.getDayOfMonth+"_match.csv"
+      FileHelper.writeToFile(matchIds.toDF("matchId"), "match/"+date.getYear+"_"+date.getMonthValue+"_"+date.getDayOfMonth+"_matchId")
+      log.info("get all matchIds with length:  "+matchIds.length)
+      spark.stop()
+    }
+    case ls:List[String]=>{
+      log.info("Received message :start to save match id ")
+      val spark:SparkSession = SparkSession
+        .builder()
+        .appName("Destiny")
+        .master("local[*]")
+        .getOrCreate()
+      import spark.implicits._
+      val date = LocalDate.now()
+      val result = Await.result(RiotMatchInfoRequest(ls.distinct).requestForMatchInfo(),40 minute)
+      log.info("get all match info with length : "+result.length)
+      val fileName = "match/"+date.getYear+"_"+date.getMonthValue+"_"+date.getDayOfMonth+"_match"
+      val championMas = result.filter(x=>x!=null).map(x=>x.getAs[List[SummonerChampion]](11)).flatten
+      self ! championMas.toStream
       FileHelper.writeToFile(result.filter(x=>x!=null).map(x=>(x.getString(0),x.getInt(1),x.getInt(2),x.getInt(3),x.getInt(4),x.getInt(5),x.getInt(6),x.getInt(7),x.getInt(8),x.getInt(9),x.getInt(10)))
         .toDF("gameId","Win_TOP","Win_JUG","Win_MID","Win_BOT","Win_SUP","Fail_TOP","Fail_JUG","Fail_MID","Fail_BOT","Fail_SUP"),fileName)
+      log.info("write match info file finished")
+      spark.stop()
+    }
+    case l:Stream[SummonerChampion]=>{
+      log.info("Start to request Champion mastery")
+      val result = Await.result(RiotChampionMasteryRequest(l.toList).requestForChampionMastery(),1 minute)
+      log.info("get Champion mastery with num : "+result.length)
+      val spark:SparkSession = SparkSession
+        .builder()
+        .appName("Destiny")
+        .master("local[*]")
+        .getOrCreate()
+      import spark.implicits._
+      val date = LocalDate.now()
+      val fileName = "match/"+date.getYear+"_"+date.getMonthValue+"_"+date.getDayOfMonth+"_champion"
+      FileHelper.writeToFile(result.filter(x=>x!=null).map(x=>(x.gameId,x.championId,x.point)).toDF("gameId","championId","point"),fileName)
+      log.info("write champion mastery finished")
       spark.stop()
     }
   }
+
 }
