@@ -16,18 +16,18 @@ libraryDependencies ++= Seq(
   "net.sourceforge.htmlcleaner"%"htmlcleaner"%"2.6.1",
   akkaGroup %% "akka-actor" % akkaVersion,
   akkaGroup %% "akka-testkit" % akkaVersion % "test",
-  akkaGroup %% "akka-slf4j" % akkaVersion,
+//  akkaGroup %% "akka-slf4j" % akkaVersion,
   "com.typesafe" % "config" % "1.3.0",
-  "ch.qos.logback" % "logback-classic" % "1.0.0" % "runtime"
+//  "ch.qos.logback" % "logback-classic" % "1.0.0" % "runtime"
 )
 
 val scalaTestVersion = "2.2.4"
 
-libraryDependencies += "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
+//libraryDependencies += "org.scalatest" %% "scalatest" % scalaTestVersion % "test"
 
-libraryDependencies += "org.apache.spark" %% "spark-core" % "2.4.0"
+//libraryDependencies += "org.apache.spark" %% "spark-core" % "2.4.0"
 
-libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.0"
+//libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.0"
 
 parallelExecution in Test := false
 

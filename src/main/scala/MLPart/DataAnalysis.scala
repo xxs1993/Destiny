@@ -24,9 +24,9 @@ object DataAnalysis extends App {
     println(s"total lines - raw: ${raw.count()}")
 
     import spark.implicits._
-    case class MatchRecord(gameId: String,
-                           Win_TOP: Int, Win_JUG: Int, Win_MID: Int, Win_BOT: Int, Win_SUP: Int,
-                           Fail_TOP: Int, Fail_JUG: Int, Fail_MID: Int, Fail_BOT: Int, Fail_SUP: Int)
+//    case class MatchRecord(gameId: String,
+//                           Win_TOP: Int, Win_JUG: Int, Win_MID: Int, Win_BOT: Int, Win_SUP: Int,
+//                           Fail_TOP: Int, Fail_JUG: Int, Fail_MID: Int, Fail_BOT: Int, Fail_SUP: Int)
 
 //    val encoder = RowEncoder(raw.schema)
 
@@ -106,10 +106,15 @@ object DataAnalysis extends App {
       .withColumn("rate_win", $"count_win"/$"count_total")
       .withColumn("rate_fail", $"count_fail"/$"count_total")
       .withColumn("rate_pick", $"count_total"/sumCount)
-//    champWinFailCountRate.show()
+    champWinFailCountRate.show()
 
-    val map = Map
-//    map.
+//    var mapChampRate: Map[String, List[Double]] = Map()
+//    champWinFailCountRate.foreach(r =>{
+//      mapChampRate += (r.getAs[String]("champ_id")
+//        -> List(r.getAs[Double]("rate_win"),
+//        r.getAs[Double]("rate_fail"),
+//        r.getAs[Double]("rate_pick")));println(mapChampRate)})
+
 
 
 
