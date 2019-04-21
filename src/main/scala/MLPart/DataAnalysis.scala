@@ -20,7 +20,11 @@ object DataAnalysis extends App {
 
     // make sure file is in the right format
     // may need to drop rows with null value
-    val raw = spark.read.format("csv").option("header", "true").load("data/sample_data.csv")
+    val raw = spark.read.format("csv").option("header", "true").load("data/team_match.csv")
+    val champ_name = spark.read.format("csv").option("header", "true").load("data/champs.csv").withColumnRenamed("id", "champ_id")
+//    var champ_name_map: Map[String, String] = Map()
+//    champ_name.collect().foreach(r => champ_name_map += (r.getAs[String]("champ_id") -> r.getAs[String]("name")))
+
     println(s"total lines - raw: ${raw.count()}")
 
     import spark.implicits._
@@ -106,6 +110,8 @@ object DataAnalysis extends App {
       .withColumn("rate_win", $"count_win"/$"count_total")
       .withColumn("rate_fail", $"count_fail"/$"count_total")
       .withColumn("rate_pick", $"count_total"/sumCount)
+        .join(champ_name, "champ_id")
+        .drop("champ_id")
     champWinFailCountRate.show()
 
 //    var mapChampRate: Map[String, List[Double]] = Map()
