@@ -19,7 +19,13 @@ object Predict extends App {
 
     val model = MultilayerPerceptronClassificationModel.load("models/team_ann")
 
-    var champions = Array(150,0,157,29,161,75,203,7,110,43)
+    // 267
+    val champions = Array(126,77,99,81,0,223,59,142,222,43)
+
+    val absent = getAbsentPosition(champions)
+    println(s"absent position: $absent")
+
+    val champ_set = ChampionTag().getTagByPosition(absent)
 
     import spark.implicits._
 
@@ -67,9 +73,18 @@ object Predict extends App {
       }
     }
 
-    println(res.maxBy(_._2))
+    println(res.filter(p => champ_set.contains(p._1)).maxBy(_._2))
 
     spark.stop()
 
+  }
+
+  def getAbsentPosition(cs: Array[Int]): String = {
+    if(cs(0) == 0) "top"
+    else if(cs(1) == 0) "jg"
+    else if(cs(2) == 0) "mid"
+    else if(cs(3) == 0) "bot"
+    else if(cs(4) == 0) "sup"
+    else ""
   }
 }
