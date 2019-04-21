@@ -107,9 +107,8 @@ case class RiotMatchInfoRequest(matchIds:List[String]) extends RiotRequest {
       .get.asInstanceOf[Map[String,Any]]
     val formatter = NumberFormat.getNumberInstance()
     val gameId = formatter.format((obj get "gameId" get).asInstanceOf[Double]).replace(",","")
-    val tl = obj.get("teams").get.asInstanceOf[List[Map[String,Any]]].map(x=>(x.get("teamId").get->
-        x.get("win").get.asInstanceOf[String]
-    )).toMap
+    val tl = obj("teams").asInstanceOf[List[Map[String,Any]]].map(x=> x.get("teamId").get->
+        x("win").asInstanceOf[String]).toMap
     val pl = obj.get("participants").get.asInstanceOf[List[Map[String,Any]]].map(
       x=>Map("teamId"->x.get("teamId").get,"championId"->x.get("championId").get,"position"->getPosition(x.get("timeline").get.asInstanceOf[Map[String,Any]]),"participantId"->x.get("participantId").get))
      val invalidItem = pl.filter(x=>{x.get("position") match {
@@ -118,15 +117,15 @@ case class RiotMatchInfoRequest(matchIds:List[String]) extends RiotRequest {
      }})
      if(invalidItem.length >0 ) return null
     val map:Map[String,Any] = pl.map(x=> {
-      val teamId = x.get("teamId").get
-      val result = tl.get(teamId).get.toString
-      (tl.get(teamId).get+"_"+x.get("position").get)->x.get("championId").get.asInstanceOf[Double].intValue()}).toMap
+      val teamId = x("teamId")
+      val result = tl(teamId).toString
+      (tl(teamId)+"_"+x("position"))->x("championId").asInstanceOf[Double].intValue()}).toMap
      if(map.size!=10) return null
-     val players = getPlayerInfo(gameId,obj.get("participantIdentities").get.asInstanceOf[List[Map[String,Any]]]
-       ,pl.map(x=>(x.get("participantId").get.asInstanceOf[Double].intValue()->x.get("championId").get.asInstanceOf[Double].intValue())).toMap)
+     val players = getPlayerInfo(gameId,obj("participantIdentities").asInstanceOf[List[Map[String,Any]]]
+       ,pl.map(x=> x("participantId").asInstanceOf[Double].intValue()->x("championId").asInstanceOf[Double].intValue()).toMap)
 
-    Row(gameId,map.get("Win_TOP").get,map.get("Win_JUG").get,map.get("Win_MID").get,map.get("Win_BOT").get,map.get("Win_SUP").get,
-      map.get("Fail_TOP").get,map.get("Fail_JUG").get,map.get("Fail_MID").get,map.get("Fail_BOT").get,map.get("Fail_SUP").get,players)
+    Row(gameId,map("Win_TOP"),map("Win_JUG"),map("Win_MID"),map("Win_BOT"),map("Win_SUP"),
+      map("Fail_TOP"),map("Fail_JUG"),map("Fail_MID"),map("Fail_BOT"),map("Fail_SUP"),players)
   }
 
   def getPlayerInfo(gameId:String,playerList:List[Map[String,Any]],summoners:Map[Int,Int]):List[SummonerChampion]={
@@ -225,10 +224,11 @@ case class RiotChampionMasteryRequest(list:List[SummonerChampion]) extends RiotR
     Future.sequence(re)
   }
 }
-//case class RiotChampionRequest(name:String) extends RiotRequest{
-//  val url = s"""https://na1.api.riotgames.com/lol/league/v4/positions/by-summoner/summonerId?api_key=$apikey"""
-//
-//  override def transJsonToRow(str: String): Row = {
-//    val arr =
-//  }
-//}
+case class RiotChampionRequest(name:String) extends RiotRequest{
+  override val url = s"""https://na1.api.riotgames.com/lol/league/v4/positions/by-summoner/summonerId?api_key=$apikey"""
+
+  //TODO: add
+  override def transJsonToRow(str: String): Row = {
+    Row()
+  }
+}

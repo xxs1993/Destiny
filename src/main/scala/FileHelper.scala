@@ -1,7 +1,7 @@
 import org.apache.spark.SparkContext
 import org.apache.spark.sql.{DataFrame, Encoder, Row, SparkSession}
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 object FileHelper {
 
@@ -32,5 +32,13 @@ object FileHelper {
       .getOrCreate()
     val result = Try{spark.read.format("csv").option("inferSchema","true").option("header","true").load(filePath)}
     return result
+  }
+
+
+  def readCSVFileToList(filePath:String):List[Int]={
+    readCSVFile(filePath) match {
+      case Success(v) => v.rdd.collect().toList.map(x=>x.getInt(1))
+      case Failure(exception) => Nil
+    }
   }
 }
