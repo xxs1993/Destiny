@@ -1,7 +1,10 @@
+import MLPart.ChampionTag
+
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
 object Reproduction {
+  val tagMap = ChampionTag().champ_position_map
   def getNextGeneration(list: List[Chromosome]): List[Chromosome] = {
     var i = 0
     val newList = list.map(x=>{
@@ -11,17 +14,17 @@ object Reproduction {
       val son = getNextGeneration(fa,mo)
       val son2 = getNextGeneration(fa,mo)
       List(son,son2)
-    }) flatten
-
+    }).flatten
     pick(newList)
   }
 
   def pick(list: List[Chromosome]): List[Chromosome] = {
     var result:List[Chromosome] = List()
+    val length = list.length
     val source = ListBuffer() ++ list
-    while (result.length < list.length / 2) {
-      val r1 = Random.nextInt(list.length)
-      val r2 = Random.nextInt(list.length)
+    while (result.length < length/ 2) {
+      val r1 = Random.nextInt(source.length)
+      val r2 = Random.nextInt(source.length)
       val c1 = list(r1)
       val c2 = list(r2)
       if (c1.fitness >= c2.fitness) {
@@ -47,8 +50,8 @@ object Reproduction {
       Random.nextInt(100) match {
         case i if i>3 =>x
         case _ =>{
-          val pos = x._1.split("_")(1)
-          val l = ChampionPick.pickChampionForPos(pos)
+          val pos = x._1.split("_")(1).toLowerCase
+          val l = tagMap(pos).toList
           val r = Random.nextInt(l.length)
           (x._1,Champion(l(r),x._2.score))
         }

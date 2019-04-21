@@ -1,3 +1,5 @@
+import MLPart.ChampionTag
+
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
@@ -6,14 +8,14 @@ object GARun extends App {
 }
 
 case class GARun(champions: Champions) {
+  val tagMap = ChampionTag().champ_position_map
   val chromosomes: List[Chromosome] = initChromosomes(champions)
   var map = Map[String, List[Chromosome]]()
-
   map += ("immature" -> Nil)
   map += ("mature" -> chromosomes)
+  map+=("toBeMature"->Nil)
 
 
-  var championIds: List[Int] = FileHelper.readCSVFileToList("champs.csv")
 
 
   /**
@@ -30,13 +32,13 @@ case class GARun(champions: Champions) {
   }
 
   def getRandomChampionId(pos: String, existChampionIds: List[Int]) = { //TODO:considering the pos
-
     var newChampionId = 0
     while ( {
       existChampionIds.contains(newChampionId) || newChampionId <= 0
     }) {
-      val newChampionIndex = Random.nextInt(GAConfiguration.championIndex)
-      newChampionId = championIds(newChampionIndex)
+      val list = tagMap(pos.split("_")(1).toLowerCase).toList
+      val newChampionIndex = Random.nextInt(list.length)
+      newChampionId = list(newChampionIndex)
     }
     newChampionId
   }
@@ -94,14 +96,14 @@ case class GARun(champions: Champions) {
 
   }
 
-  private def survive(list: List[Chromosome]):List[Chromosome] = {
+   def survive(list: List[Chromosome]):List[Chromosome] = {
     var result:List[Chromosome] = List()
     val source = ListBuffer() ++ list
     while (result.length < GAConfiguration.sample_number / 2) {
-      val r1 = Random.nextInt(list.length)
-      val r2 = Random.nextInt(list.length)
-      val c1 = list(r1)
-      val c2 = list(r2)
+      val r1 = Random.nextInt(source.length)
+      val r2 = Random.nextInt(source.length)
+      val c1 = source(r1)
+      val c2 = source(r2)
       if (c1.fitness >= c2.fitness) {
         result = result.+:(c1)
         source.remove(r1)

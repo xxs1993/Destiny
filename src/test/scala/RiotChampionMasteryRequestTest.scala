@@ -12,4 +12,6 @@ class RiotChampionMasteryRequestTest extends FlatSpec with Matchers with Futures
     }
   }
 
+
+
 }

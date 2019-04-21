@@ -39,7 +39,7 @@ class ReproductionTest extends FlatSpec with Matchers with BeforeAndAfter{
 
   it should ("testPick") in{
     val list = Reproduction.pick(List(mo,fa))
-    list.size shouldBe 2
+    list.size shouldBe 1
   }
 
 }
