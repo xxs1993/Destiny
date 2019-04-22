@@ -24,7 +24,7 @@ object GARun extends App {
   val pos = "Win_MID"
   val list = GARun(cham1).getSolutions
   list.slice(0,20).foreach(x=>{println(x.fitness);println(x.genes)})
-  val df = list.map(x=>x.genes.map(pos).championId).toDF("id").groupBy("id").count().toDF("id","count")
+  val df = list.map(x=>x.genes.map(pos).championId).toDF("id").groupBy("id").count().toDF("id","count").orderBy("count")
   df.show()
 
 }
@@ -96,9 +96,9 @@ case class GARun(champions: Champions) {
     * @return
     */
   def getSolutions: List[Chromosome] = {
-    var averageFitness = getAverageDegree(map("mature"))
-    val isPrint = false
-    var newFitness = 0
+//    var averageFitness = getAverageDegree(map("mature"))
+//    val isPrint = false
+//    var newFitness = 0
     var i =0
     while ( i< GAConfiguration.recursiveTimes) {
       println(s"recursive : $i times" )
@@ -109,12 +109,12 @@ case class GARun(champions: Champions) {
       }
       map = mature(map)
       map = survive(map)
-      val newFitness = getAverageDegree(map("mature"))
-      averageFitness = newFitness
+//      val newFitness = getAverageDegree(map("mature"))
+//      averageFitness = newFitness
       i +=1
     }
     val chromosomes = (map("mature") ++ map("toBeMature")).sortBy(_.fitness).reverse
-    println(averageFitness)
+//    println(averageFitness)
     chromosomes.slice(0, GAConfiguration.sample_number)
   }
 
