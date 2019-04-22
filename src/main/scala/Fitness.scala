@@ -1,9 +1,14 @@
-import org.apache.spark.SparkContext
-import org.apache.spark.sql.SparkSession
+import MLPart.WinRate
 object Fitness {
 
-  def getCollocationDegreeByGenes(champions: Champions): Int = { //TODO: call the method from model to get the win rate
-    0
+  val win = WinRate()
+  def getCollocationDegreeByGenes(champions: Champions): Double = {
+    //TODO: call the method from model to get the win rate
+    val map = champions.map
+    val list = List(map("Win_TOP").championId,map("Win_JUG").championId,map("Win_MID").championId,map("Win_BOT").championId,
+      map("Win_SUP").championId,map("Fail_TOP").championId,map("Fail_JUG").championId,map("Fail_MID").championId,map("Fail_BOT").championId,map("Fail_SUP").championId)
+//    val list  = champions.map.values.toList.map(x=>x.championId)
+    win.predictWinRate(list)*10000
   }
 
   def fitness(list: List[Chromosome]): List[Chromosome] = { //TODO: select parent chromosome

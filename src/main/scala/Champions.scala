@@ -1,10 +1,10 @@
-case class Champion(championId:Int,score:Double){
+case class Champion(championId:Int,score:Double)extends Serializable{
 
 }
-case class Champions(map :Map[String,Champion]) {
+case class Champions(map :Map[String,Champion]) extends Serializable{
 
 }
 
-case class Chromosome(genes:Champions,fitness: Int) {
+case class Chromosome(genes:Champions,fitness: Double) extends Serializable{
 
 }

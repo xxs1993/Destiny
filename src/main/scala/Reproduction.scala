@@ -1,10 +1,18 @@
 import MLPart.ChampionTag
+import org.apache.spark.SparkContext
+import org.apache.spark.sql.SparkSession
 
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
 object Reproduction {
   val tagMap = ChampionTag().champ_position_map
+  val spark:SparkSession = SparkSession
+    .builder()
+    .appName("GARun")
+    .master("local[*]")
+    .getOrCreate()
+  val sc = SparkContext.getOrCreate()
   def getNextGeneration(list: List[Chromosome]): List[Chromosome] = {
     var i = 0
     val newList = list.map(x=>{

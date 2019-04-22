@@ -17,7 +17,7 @@ case class WinRate() {
   def predictWinRate(xs: List[Int]): Double = {
 
     import spark.implicits._
-    val champion_data = spark.read.format("csv").option("header", "true").load("champs.csv")
+    val champion_data = spark.read.format("csv").option("header", "true").load("champs.csv").cache()
     val champion_info = champion_data.map(
       r => (
         r.getAs[String]("id"),
@@ -44,6 +44,7 @@ case class WinRate() {
     val test = spark.createDataFrame(Seq(
       (0.0, champs_with_a)
     )).toDF("e", "features").withColumn("features", arrToVec($"features"))
+
 
     model.transform(test)
 //      .drop("features").show(false)

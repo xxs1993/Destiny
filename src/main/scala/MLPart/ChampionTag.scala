@@ -13,7 +13,7 @@ case class ChampionTag(){
 
     import spark.implicits._
 
-    val raw = spark.read.format("csv").option("header", "true").load("data/team_match.csv")
+    val raw = spark.read.format("csv").option("header", "true").load("data/team_match.csv").cache()
     champ_position_map += ("top" -> (raw.selectExpr("cast(Win_TOP as Int) Win_TOP").map(r => r(0).asInstanceOf[Int]).collect()
       ++: raw.selectExpr("cast(Fail_TOP as Int) top").map(_(0).asInstanceOf[Int]).collect()).toSet)
     champ_position_map += ("jug" -> (raw.selectExpr("cast(Win_JUG as Int) jg").map(r => r(0).asInstanceOf[Int]).collect()
